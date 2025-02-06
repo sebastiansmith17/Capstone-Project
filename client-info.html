@@ -10,12 +10,25 @@
   <div class="container">
     <h1>Client Information Form</h1>
     <form id="clientForm">
-      <label for="companyName">Company Name:</label>
-      <input type="text" id="companyName" name="companyName" required>
+      <!-- Dropdown for number of employees -->
+      <label for="employeeCount">Number of Employees (2-10):</label>
+      <select id="employeeCount" name="employeeCount" required>
+        <option value="" disabled selected>Select</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+      </select>
 
-      <label for="employeeName">Employee Name:</label>
-      <input type="text" id="employeeName" name="employeeName" required>
+      <!-- Container for employee input fields -->
+      <div id="employeeFields"></div>
 
+      <!-- Submit button -->
       <button type="submit">Submit</button>
     </form>
   </div>
