@@ -1,12 +1,12 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    background-color: #ffffff;
     margin: 0;
     padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
   }
   
   .container {
@@ -14,12 +14,13 @@ body {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 300px;
+    width: 100%;
+    max-width: 600px;
   }
   
   h1 {
     color: #333;
+    text-align: center;
   }
   
   form {
@@ -32,7 +33,7 @@ body {
     font-weight: bold;
   }
   
-  input {
+  input, select {
     margin-bottom: 15px;
     padding: 10px;
     border: 1px solid #ccc;
@@ -50,4 +51,17 @@ body {
   
   button:hover {
     background-color: #0056b3;
+  }
+  
+  .employee {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+  }
+  
+  .employee h3 {
+    margin-top: 0;
+    color: #555;
   }
