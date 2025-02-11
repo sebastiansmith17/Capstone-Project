@@ -1,67 +1,76 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #ffffff;
+    background-color: #f4f4f4;
     margin: 0;
     padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-  }
-  
-  .container {
+}
+
+.container {
     background-color: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 600px;
-  }
-  
-  h1 {
+    max-width: 600px; /* Adjusted width for better spacing */
+}
+
+h1 {
     color: #333;
     text-align: center;
-  }
-  
-  form {
+}
+
+form {
     display: flex;
     flex-direction: column;
-  }
-  
-  label {
+}
+
+label {
     margin-bottom: 5px;
     font-weight: bold;
-  }
-  
-  input, select {
+}
+
+input[type="text"], select {
     margin-bottom: 15px;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
-  }
-  
-  button {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button {
     padding: 10px;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-  }
-  
-  button:hover {
+    margin-top: 20px;
+}
+
+button:hover {
     background-color: #0056b3;
-  }
-  
-  .employee {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
+}
+
+fieldset {
+    border: 1px solid #ccc;
     border-radius: 4px;
-    background-color: #f9f9f9;
-  }
-  
-  .employee h3 {
-    margin-top: 0;
-    color: #555;
-  }
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Adjust as needed */
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.grid-item {
+    display: flex;
+    flex-direction: column;
+}
