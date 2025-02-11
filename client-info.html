@@ -9,9 +9,33 @@
 <body>
   <div class="container">
     <h1>Client Information Form</h1>
+    <p>Please fill out all of the fields below.</p>
+   
     <form id="clientForm">
+      <!-- Company Name Input -->
+      <label for="companyName">Company Name:</label>
+      <input type="text" id="companyName" name="companyName" required>
+
+      <!-- Company ZIP Code Input -->
+      <label for="companyZip">Company ZIP Code:</label>
+      <input type="text" id="companyZip" name="companyZip" required>
+      
+      <!-- Checkboxes for insurance options -->
+      <fieldset>
+        <legend>Insurance Options:</legend>
+        <label>
+          <input type="checkbox" name="insurance" value="medical"> Medical
+        </label>
+        <label>
+          <input type="checkbox" name="insurance" value="dental"> Dental
+        </label>
+        <label>
+          <input type="checkbox" name="insurance" value="vision"> Vision
+        </label>
+      </fieldset>
+
       <!-- Dropdown for number of employees -->
-      <label for="employeeCount">Please choose how many your employees your company has:</label>
+      <label for="employeeCount">Number of Employees (2-10):</label>
       <select id="employeeCount" name="employeeCount" required>
         <option value="" disabled selected>Select</option>
         <option value="2">2</option>
@@ -25,10 +49,8 @@
         <option value="10">10</option>
       </select>
 
-      <p>Please fill out all of the fields below.</p>
-
       <!-- Container for employee input fields -->
-      <div id="employeeFields"></div>
+      <div id="employeeFields" class="grid-container"></div>
 
       <!-- Submit button -->
       <button type="submit">Submit</button>
