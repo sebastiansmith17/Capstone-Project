@@ -26,11 +26,14 @@ function generateEmployeeFields(count) {
             <label for="birthDate${i}">Birth Date:</label>
             <input type="date" id="birthDate${i}" name="birthDate${i}" required>
 
-            <label for="ssn${i}">SSN:</label>
-            <input type="text" id="ssn${i}" name="ssn${i}" required>
+            <label for="email${i}">Email:</label>
+            <input type="text" id="email${i}" name="email${i}" required>
 
             <label for="hireDate${i}">Hire Date:</label>
             <input type="date" id="hireDate${i}" name="hireDate${i}" required>
+
+            <label for="dependents${i}">Dependents (Y/N):</label>
+            <input type="text" id="dependents${i}" name="dependents${i}" required>
         `;
 
         employeeFieldsContainer.appendChild(employeeDiv);
@@ -76,8 +79,9 @@ document.getElementById('clientForm')?.addEventListener('submit', function (e) {
             firstName: document.getElementById(`firstName${i}`).value,
             lastName: document.getElementById(`lastName${i}`).value,
             birthDate: document.getElementById(`birthDate${i}`).value,
-            ssn: document.getElementById(`ssn${i}`).value,
+            email: document.getElementById(`email${i}`).value,
             hireDate: document.getElementById(`hireDate${i}`).value,
+            dependents: document.getElementById('dependents${i}').value,
         };
         employees.push(employee);
     }
