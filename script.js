@@ -1,104 +1,79 @@
 // Redirect to the client info page when the "Next" button is clicked
 document.getElementById('nextButton')?.addEventListener('click', function () {
     window.location.href = 'client-info.html';
-});
-
-// Get references to the dropdown and employee fields container
-const employeeCountDropdown = document.getElementById('employeeCount');
-const employeeFieldsContainer = document.getElementById('employeeFields');
-
-// Function to generate employee input fields
-function generateEmployeeFields(count) {
-    employeeFieldsContainer.innerHTML = ''; // Clear existing fields
-
+  });
+  
+  // Get references to the dropdown and employee fields container
+  const employeeCountDropdown = document.getElementById('employeeCount');
+  const employeeFieldsContainer = document.getElementById('employeeFields');
+  
+  // Function to generate employee input fields
+  function generateEmployeeFields(count) {
+    // Clear existing fields (except the header row)
+    const headerRow = employeeFieldsContainer.querySelector('.header-row');
+    employeeFieldsContainer.innerHTML = '';
+    employeeFieldsContainer.appendChild(headerRow);
+  
     for (let i = 1; i <= count; i++) {
-        const employeeDiv = document.createElement('div');
-        employeeDiv.classList.add('employee');
-
-        employeeDiv.innerHTML = `
-            <h3>Employee ${i}</h3>
-            <label for="firstName${i}">First Name:</label>
-            <input type="text" id="firstName${i}" name="firstName${i}" required>
-
-            <label for="lastName${i}">Last Name:</label>
-            <input type="text" id="lastName${i}" name="lastName${i}" required>
-
-            <label for="birthDate${i}">Birth Date:</label>
-            <input type="date" id="birthDate${i}" name="birthDate${i}" required>
-
-            <label for="email${i}">Email:</label>
-            <input type="text" id="email${i}" name="email${i}" required>
-
-            <label for="hireDate${i}">Hire Date:</label>
-            <input type="date" id="hireDate${i}" name="hireDate${i}" required>
-
-            <label for="dependents${i}">Dependents (Y/N):</label>
-            <input type="text" id="dependents${i}" name="dependents${i}" required>
-        `;
-
-        employeeFieldsContainer.appendChild(employeeDiv);
+      const employeeRow = document.createElement('div');
+      employeeRow.classList.add('employee-row');
+  
+      employeeRow.innerHTML = `
+        <div class="employee-number">${i}</div>
+        <div class="field"><input type="text" id="firstName${i}" name="firstName${i}" required></div>
+        <div class="field"><input type="text" id="lastName${i}" name="lastName${i}" required></div>
+        <div class="field"><input type="date" id="birthDate${i}" name="birthDate${i}" required></div>
+        <div class="field"><input type="email" id="email${i}" name="email${i}" required></div>
+        <div class="field"><input type="date" id="hireDate${i}" name="hireDate${i}" required></div>
+        <div class="field">
+          <select id="dependents${i}" name="dependents${i}" required>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+      `;
+  
+      employeeFieldsContainer.appendChild(employeeRow);
     }
-}
-
-// Event listener for the dropdown
-employeeCountDropdown?.addEventListener('change', function () {
+  }
+  
+  // Event listener for the dropdown
+  employeeCountDropdown?.addEventListener('change', function () {
     const selectedCount = parseInt(employeeCountDropdown.value, 10);
     if (selectedCount >= 2 && selectedCount <= 10) {
-        generateEmployeeFields(selectedCount);
+      generateEmployeeFields(selectedCount);
     }
-});
-
-// Handle form submission on the client info page
-document.getElementById('clientForm')?.addEventListener('submit', function (e) {
+  });
+  
+  // Handle form submission on the client info page
+  document.getElementById('clientForm')?.addEventListener('submit', function (e) {
     e.preventDefault(); // Prevent the form from submitting the traditional way
-
-    // Collect company data
-    const companyName = document.getElementById('companyName').value.trim();
-    const companyZip = document.getElementById('companyZip').value.trim();
-
-    // Validation for company name
-    if (!companyName) {
-        alert('Please enter a company name.');
-        return;
-    }
-
-    // Validation for company ZIP code (5 digits)
-    const zipCodePattern = /^\d{5}$/;
-    if (!zipCodePattern.test(companyZip)) {
-        alert('Please enter a valid 5-digit ZIP code.');
-        return;
-    }
-
+  
+    // Collect company information
+    const companyName = document.getElementById('companyName').value;
+    const companyZipcode = document.getElementById('companyZip').value;
+  
     // Collect data for each employee
     const employeeCount = parseInt(employeeCountDropdown.value, 10);
     const employees = [];
-
+  
     for (let i = 1; i <= employeeCount; i++) {
-        const employee = {
-            companyName: companyName, // Add company name to each employee
-            firstName: document.getElementById(`firstName${i}`).value,
-            lastName: document.getElementById(`lastName${i}`).value,
-            birthDate: document.getElementById(`birthDate${i}`).value,
-            email: document.getElementById(`email${i}`).value,
-            hireDate: document.getElementById(`hireDate${i}`).value,
-            dependents: document.getElementById('dependents${i}').value,
-        };
-        employees.push(employee);
+      const employee = {
+        firstName: document.getElementById(`firstName${i}`).value,
+        lastName: document.getElementById(`lastName${i}`).value,
+        birthDate: document.getElementById(`birthDate${i}`).value,
+        email: document.getElementById(`email${i}`).value,
+        hireDate: document.getElementById(`hireDate${i}`).value,
+        dependents: document.getElementById(`dependents${i}`).value,
+      };
+      employees.push(employee);
     }
-
-    // Collect selected insurance options
-    const insuranceOptions = [];
-    const insuranceCheckboxes = document.querySelectorAll('input[name="insurance"]:checked');
-    insuranceCheckboxes.forEach((checkbox) => {
-        insuranceOptions.push(checkbox.value);
-    });
-
+  
     // Log the data (you can replace this with saving to a server or local storage)
     console.log('Company Name:', companyName);
-    console.log('Company ZIP Code:', companyZip);
+    console.log('Company Zipcode:', companyZipcode);
     console.log('Employees:', employees);
-    console.log('Insurance Options:', insuranceOptions);
-
+  
     // Redirect to the Thank You page
     window.location.href = 'thank-you.html';
-});
+  });
