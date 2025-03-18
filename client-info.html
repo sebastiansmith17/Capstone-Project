@@ -1,80 +1,128 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Information</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container">
-    <h1>Client Information Form</h1>
-    <form id="clientForm">
-      <!-- Company Name and ZIP Code (aligned horizontally) -->
-      <div class="form-row">
-        <div class="form-group">
-          <label for="companyName">Company Name:</label>
-          <input type="text" id="companyName" name="companyName" required>
-        </div>
-        <div class="form-group">
-          <label for="companyZip">Company ZIP Code:</label>
-          <input type="text" id="companyZip" name="companyZip" required>
-        </div>
-      </div>
-
-      <!-- Checkboxes for insurance options (aligned horizontally) -->
-      <fieldset>
-        <legend>Insurance Options:</legend>
-        <div class="form-row">
-          <label class="checkbox-group">
-            <input type="checkbox" name="insurance" value="medical"> Medical
-          </label>
-          <label class="checkbox-group">
-            <input type="checkbox" name="insurance" value="dental"> Dental
-          </label>
-          <label class="checkbox-group">
-            <input type="checkbox" name="insurance" value="vision"> Vision
-          </label>
-        </div>
-      </fieldset>
-
-      <!-- Dropdown for number of employees -->
-      <div class="form-row">
-        <div class="form-group">
-          <label for="employeeCount">Number of Employees (2-10):</label>
-          <select id="employeeCount" name="employeeCount" required>
-            <option value="" disabled selected>Select</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Table-like structure for employee input fields -->
-      <div id="employeeFields" class="employee-fields">
-        <div class="header-row">
-          <div class="employee-number">Employee #</div>
-          <div class="field">First Name</div>
-          <div class="field">Last Name</div>
-          <div class="field">Birth Date</div>
-          <div class="field">Email</div>
-          <div class="field">Hire Date</div>
-          <div class="field">Dependents</div>
-        </div>
-        <!-- Employee rows will be dynamically inserted here -->
-      </div>
-
-      <!-- Submit button -->
-      <button type="submit">Submit</button>
-    </form>
-  </div>
-  <script src="script.js"></script>
-</body>
-</html>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  
+  .container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 1200px;
+  }
+  
+  h1 {
+    color: #333;
+    text-align: center;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+  }
+  
+  .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  label {
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  input, select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  fieldset {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+  }
+  
+  legend {
+    font-weight: bold;
+  }
+  
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  .employee-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .header-row, .employee-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .header-row {
+    font-weight: bold;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-bottom: 2px solid #ddd;
+  }
+  
+  .employee-number, .field {
+    flex: 1;
+    text-align: center;
+    min-width: 120px;
+  }
+  
+  .employee-row {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .employee-row .employee-number {
+    font-weight: bold;
+  }
+  
+  .employee-row .field input,
+  .employee-row .field select {
+    width: 100%;
+    box-sizing: border-box;
+  }
