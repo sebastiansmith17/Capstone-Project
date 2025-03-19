@@ -46,7 +46,7 @@ document.getElementById('nextButton')?.addEventListener('click', function () {
   });
   
   // Handle form submission on the client info page
-  document.getElementById('clientForm')?.addEventListener('submit', function (e) {
+  document.getElementById('clientForm')?.addEventListener('submit', async function (e) {
     e.preventDefault(); // Prevent the form from submitting the traditional way
   
     // Collect company information
@@ -69,11 +69,21 @@ document.getElementById('nextButton')?.addEventListener('click', function () {
       employees.push(employee);
     }
   
-    // Log the data (you can replace this with saving to a server or local storage)
-    console.log('Company Name:', companyName);
-    console.log('Company Zipcode:', companyZipcode);
-    console.log('Employees:', employees);
+    // Send data to the backend
+    try {
+      const response = await fetch('http://localhost:3000/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ companyName, companyZipcode, employees }),
+      });
   
-    // Redirect to the Thank You page
-    window.location.href = 'thank-you.html';
+      const result = await response.json();
+      console.log('Success:', result);
+      window.location.href = 'thank-you.html';
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred while submitting the form. Please try again.');
+    }
   });
