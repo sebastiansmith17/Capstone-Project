@@ -5,8 +5,7 @@ const mysql = require('mysql2/promise');
 
 // Initialize Express app
 const app = express();
-const port = 3000;
-app.listen(3000, () => console.log('Server running on port 3000'));
+const PORT = 3000; // Explicit port declaration
 
 // Database configuration
 const pool = mysql.createPool({
@@ -30,27 +29,106 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-    origin: allowedOrigins, // Or your array of allowed origins
-    methods: ['GET', 'POST', 'OPTIONS'], // Explicit methods
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    optionsSuccessStatus: 200
-  };
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
 
 // Apply middleware in correct order
 app.use(cors(corsOptions)); // Regular requests
 app.options('*', cors(corsOptions)); // Preflight requests
-//app.use(express.json());
+app.use(express.json()); // Enable JSON body parsing
 
-// Root endpoint
+// Routes
 app.get('/', (req, res) => {
+  console.log(`📊 Root route accessed | IP: ${req.ip} | Time: ${new Date().toISOString()}`);
+  
+  const apiEndpoints = [
+    {
+      method: 'GET',
+      path: '/health',
+      description: 'Server health status',
+      example: 'curl http://localhost:3000/health'
+    },
+    {
+      method: 'POST',
+      path: '/submit',
+      description: 'Submit client/employee data',
+      example: `curl -X POST http://localhost:3000/submit \\
+        -H "Content-Type: application/json" \\
+        -d '{"companyName":"Test","employees":[{"firstName":"John"}]}'`
+    }
+  ];
+
   res.send(`
-    <h1>Client Information API</h1>
-    <p>CORS-enabled endpoints:</p>
-    <ul>
-      <li><a href="/health">/health</a></li>
-      <li>POST /submit</li>
-    </ul>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Client API Documentation</title>
+      <style>
+        :root {
+          --color-get: #2ecc71;
+          --color-post: #e67e22;
+          --color-bg: #f8f9fa;
+          --color-text: #2c3e50;
+        }
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          margin: 0;
+          padding: 2rem;
+          color: var(--color-text);
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .method {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 4px;
+          font-weight: bold;
+          font-family: monospace;
+          margin-right: 0.5rem;
+        }
+        .method-get { background: var(--color-get); color: white; }
+        .method-post { background: var(--color-post); color: white; }
+        .endpoint {
+          background: white;
+          padding: 1rem;
+          margin: 1rem 0;
+          border-left: 4px solid #3498db;
+        }
+        footer {
+          margin-top: 2rem;
+          font-size: 0.9rem;
+          color: #7f8c8d;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Client Information API</h1>
+      <p>Server is running at ${new Date().toLocaleString()}</p>
+
+      <h2>Available Endpoints</h2>
+      ${apiEndpoints.map(endpoint => `
+        <div class="endpoint">
+          <div>
+            <span class="method method-${endpoint.method.toLowerCase()}">${endpoint.method}</span>
+            <strong>${endpoint.path}</strong>
+          </div>
+          <p>${endpoint.description}</p>
+          ${endpoint.method === 'GET' ? `<a href="${endpoint.path}">Test Endpoint</a>` : ''}
+        </div>
+      `).join('')}
+
+      <footer>
+        ℹ️ Add <code>?debug=1</code> to any URL for detailed output
+      </footer>
+    </body>
+    </html>
   `);
 });
 
@@ -121,7 +199,7 @@ app.post('/submit', async (req, res) => {
   }
 });
 
-// Error handling middleware
+// Error handling middleware (MUST be after routes but before server startup)
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ 
@@ -135,8 +213,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+// Start server (ONCE)
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+})
+.on('error', (err) => {
+  console.error('Server failed:', err);
 });
