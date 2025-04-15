@@ -71,19 +71,31 @@ document.getElementById('nextButton')?.addEventListener('click', function () {
   
     // Send data to the backend
     try {
-      const response = await fetch('http://localhost:3000/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ companyName, companyZipcode, employees }),
-      });
-  
-      const result = await response.json();
-      console.log('Success:', result);
-      window.location.href = 'thank-you.html';
-    } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred while submitting the form. Please try again.');
-    }
-  });
+        const response = await fetch('http://localhost:3000/submit', {  // Changed endpoint to /submit
+          method: 'POST',
+          mode: 'cors',  // Explicitly enable CORS
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ 
+            companyName, 
+            companyZipcode, 
+            employees 
+          })
+        });
+    
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Submission failed');
+        }
+    
+        const result = await response.json();
+        console.log('Success:', result);
+        window.location.href = 'thank-you.html';
+        
+      } catch (error) {
+        console.error('Error:', error);
+        alert(`Submission error: ${error.message}`);
+      }
+    });
