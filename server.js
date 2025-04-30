@@ -1,112 +1,365 @@
-// Redirect to the client info page when the "Next" button is clicked
-document.getElementById('nextButton')?.addEventListener('click', function () {
-  window.location.href = 'client-info.html';
+// server.js
+require('dotenv').config(); // Load environment variables
+const express = require('express');
+const cors = require('cors');
+const mysql = require('mysql2/promise');
+const nodemailer = require('nodemailer');
+
+// Initialize Express app
+const app = express();
+const PORT = 3000;
+
+// Create email transporter
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE || 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
-// Get references to the dropdown and employee fields container
-const employeeCountDropdown = document.getElementById('employeeCount');
-const employeeFieldsContainer = document.getElementById('employeeFields');
+// Database connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-// Function to generate employee input fields
-function generateEmployeeFields(count) {
-  // Clear existing fields (except the header row)
-  const headerRow = employeeFieldsContainer.querySelector('.header-row');
-  employeeFieldsContainer.innerHTML = '';
-  employeeFieldsContainer.appendChild(headerRow);
+// CORS Configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'https://sebastiansmith17.github.io/Capstone-Project/'
+];
 
-  for (let i = 1; i <= count; i++) {
-    const employeeRow = document.createElement('div');
-    employeeRow.classList.add('employee-row');
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
 
-    employeeRow.innerHTML = `
-      <div class="employee-number">${i}</div>
-      <div class="field"><input type="text" id="firstName${i}" name="firstName${i}" required></div>
-      <div class="field"><input type="text" id="lastName${i}" name="lastName${i}" required></div>
-      <div class="field"><input type="date" id="birthDate${i}" name="birthDate${i}" required></div>
-      <div class="field"><input type="email" id="email${i}" name="email${i}" required></div>
-      <div class="field"><input type="date" id="hireDate${i}" name="hireDate${i}" required></div>
-      <div class="field">
-        <select id="dependents${i}" name="dependents${i}" required>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-        </select>
+// Apply middleware
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+app.use(express.json());
+
+async function sendConfirmationEmail(companyData, employees) {
+  // Format insurance types with icons
+  const insuranceHTML = companyData.insuranceTypes
+    .map(type => {
+      const icon = {
+        medical: '🏥',
+        dental: '🦷',
+        vision: '👓'
+      }[type] || '✓';
+      return `<li style="margin-bottom: 5px;">${icon} ${type.charAt(0).toUpperCase() + type.slice(1)}</li>`;
+    })
+    .join('');
+
+  const mailOptions = {
+    from: `"Insurance Form System" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_TO || process.env.EMAIL_USER,
+    subject: `New Submission: ${companyData.companyName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <h1 style="color: #2c3e50;">New Insurance Request</h1>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+          <h2 style="color: #3498db; margin-top: 0;">Company Details</h2>
+          <p><strong>Name:</strong> ${companyData.companyName}</p>
+          <p><strong>Zip Code:</strong> ${companyData.companyZipcode}</p>
+          
+          <h3 style="color: #3498db;">Selected Insurance Types</h3>
+          <ul style="list-style: none; padding: 0; margin-top: 10px;">
+            ${insuranceHTML}
+          </ul>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+          <h2 style="color: #3498db; margin-top: 0;">Employees (${employees.length})</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+              <tr style="background-color: #3498db; color: white;">
+                <th style="padding: 10px; text-align: left;">#</th>
+                <th style="padding: 10px; text-align: left;">Name</th>
+                <th style="padding: 10px; text-align: left;">Email</th>
+                <th style="padding: 10px; text-align: left;">Birth Date</th>
+                <th style="padding: 10px; text-align: left;">Hire Date</th>
+                <th style="padding: 10px; text-align: left;">Dependents</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${employees.map((emp, index) => `
+                <tr style="border-bottom: 1px solid #ddd;">
+                  <td style="padding: 10px;">${index + 1}</td>
+                  <td style="padding: 10px;">${emp.firstName} ${emp.lastName}</td>
+                  <td style="padding: 10px;">${emp.email}</td>
+                  <td style="padding: 10px;">${new Date(emp.birthDate).toLocaleDateString()}</td>
+                  <td style="padding: 10px;">${new Date(emp.hireDate).toLocaleDateString()}</td>
+                  <td style="padding: 10px;">${emp.dependents === 'yes' ? 'Yes' : 'No'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        
+        <p style="margin-top: 20px; color: #7f8c8d; font-size: 0.9em;">
+          Submitted on ${new Date().toLocaleString()}
+        </p>
       </div>
-    `;
+    `,
+    text: `New Submission\n\nCompany: ${companyData.companyName}\nZip: ${companyData.companyZipcode}\n\nInsurance Types:\n- ${companyData.insuranceTypes.join('\n- ')}\n\nEmployees:\n${employees.map((emp, i) => `${i+1}. ${emp.firstName} ${emp.lastName}`).join('\n')}`
+  };
 
-    employeeFieldsContainer.appendChild(employeeRow);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Email sending failed:', error);
+    throw error;
   }
 }
 
-// Event listener for the dropdown
-employeeCountDropdown?.addEventListener('change', function () {
-  const selectedCount = parseInt(employeeCountDropdown.value, 10);
-  if (selectedCount >= 2 && selectedCount <= 10) {
-    generateEmployeeFields(selectedCount);
+// Routes
+app.get('/', (req, res) => {
+  console.log(`📊 Root route accessed | IP: ${req.ip} | Time: ${new Date().toISOString()}`);
+  
+  const apiEndpoints = [
+    {
+      method: 'GET',
+      path: '/health',
+      description: 'Server health status',
+      example: 'curl http://localhost:3000/health'
+    },
+    {
+      method: 'POST',
+      path: '/submit',
+      description: 'Submit client/employee data',
+      example: `curl -X POST http://localhost:3000/submit \\
+        -H "Content-Type: application/json" \\
+        -d '{"companyName":"Test","companyZipcode":"12345","employees":[{"firstName":"John","lastName":"Doe","email":"john@example.com","birthDate":"1990-01-01","hireDate":"2020-01-01","dependents":"yes"}]}'`
+    }
+  ];
+
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Client API Documentation</title>
+      <style>
+        :root {
+          --color-get: #2ecc71;
+          --color-post: #e67e22;
+          --color-bg: #f8f9fa;
+          --color-text: #2c3e50;
+        }
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          margin: 0;
+          padding: 2rem;
+          color: var(--color-text);
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .method {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 4px;
+          font-weight: bold;
+          font-family: monospace;
+          margin-right: 0.5rem;
+        }
+        .method-get { background: var(--color-get); color: white; }
+        .method-post { background: var(--color-post); color: white; }
+        .endpoint {
+          background: white;
+          padding: 1rem;
+          margin: 1rem 0;
+          border-left: 4px solid #3498db;
+        }
+        footer {
+          margin-top: 2rem;
+          font-size: 0.9rem;
+          color: #7f8c8d;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Client Information API</h1>
+      <p>Server is running at ${new Date().toLocaleString()}</p>
+
+      <h2>Available Endpoints</h2>
+      ${apiEndpoints.map(endpoint => `
+        <div class="endpoint">
+          <div>
+            <span class="method method-${endpoint.method.toLowerCase()}">${endpoint.method}</span>
+            <strong>${endpoint.path}</strong>
+          </div>
+          <p>${endpoint.description}</p>
+          ${endpoint.method === 'GET' ? `<a href="${endpoint.path}">Test Endpoint</a>` : ''}
+        </div>
+      `).join('')}
+
+      <footer>
+        ℹ️ Add <code>?debug=1</code> to any URL for detailed output
+      </footer>
+    </body>
+    </html>
+  `);
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    database: pool.pool.config.connectionConfig.database,
+    emailService: !!transporter.options.auth.user
+  });
+});
+
+// Form submission endpoint
+app.post('/submit', async (req, res) => {
+  const { companyName, companyZipcode, employees, insuranceTypes } = req.body;
+  
+  // Validate required fields
+  if (!companyName || !companyZipcode || !employees || !insuranceTypes) {
+    return res.status(400).json({ 
+      error: 'Missing required fields',
+      required: {
+        companyName: 'string',
+        companyZipcode: 'string',
+        employees: 'array',
+        insuranceTypes: 'array'
+      }
+    });
+  }
+
+  if (!Array.isArray(insuranceTypes) || insuranceTypes.length === 0) {
+    return res.status(400).json({ 
+      error: 'Please select at least one insurance type',
+      validOptions: ['medical', 'dental', 'vision']
+    });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Insert company with insurance types
+    const [companyResult] = await connection.query(
+      'INSERT INTO companies (company_name, company_zipcode, insurance_types) VALUES (?, ?, ?)',
+      [companyName, companyZipcode, JSON.stringify(insuranceTypes)]
+    );
+
+    // Insert employees
+    const employeePromises = employees.map(employee => {
+      return connection.query(
+        'INSERT INTO employees (company_id, first_name, last_name, birth_date, email, hire_date, dependents) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          companyResult.insertId,
+          employee.firstName,
+          employee.lastName,
+          employee.birthDate,
+          employee.email,
+          employee.hireDate,
+          employee.dependents === 'yes' ? 1 : 0
+        ]
+      );
+    });
+
+    await Promise.all(employeePromises);
+    await connection.commit();
+
+    // Send confirmation email
+    await sendConfirmationEmail(
+      { companyName, companyZipcode, insuranceTypes },
+      employees
+    );
+
+    res.json({ 
+      success: true,
+      message: 'Data saved successfully',
+      companyId: companyResult.insertId,
+      insuranceTypes
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('Database error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message
+    });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
-// Handle form submission on the client info page
-document.getElementById('clientForm')?.addEventListener('submit', async function (e) {
-  e.preventDefault(); // Prevent the form from submitting the traditional way
-
-  // Collect company information
-  const companyName = document.getElementById('companyName').value;
-  const companyZipcode = document.getElementById('companyZip').value;
-
-  // Collect insurance selections
-  const insuranceCheckboxes = document.querySelectorAll('input[name="insurance"]:checked');
-  const insuranceTypes = Array.from(insuranceCheckboxes).map(cb => cb.value);
-
-  // Validate at least one insurance type is selected
-  if (insuranceTypes.length === 0) {
-    alert('Please select at least one insurance type');
-    return;
+// Error handling middleware
+app.use((err, req, res, next) => {
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ 
+      error: 'CORS Policy Violation',
+      allowedOrigins,
+      yourOrigin: req.headers.origin
+    });
   }
-
-  // Collect data for each employee
-  const employeeCount = parseInt(employeeCountDropdown.value, 10);
-  const employees = [];
-
-  for (let i = 1; i <= employeeCount; i++) {
-    const employee = {
-      firstName: document.getElementById(`firstName${i}`).value,
-      lastName: document.getElementById(`lastName${i}`).value,
-      birthDate: document.getElementById(`birthDate${i}`).value,
-      email: document.getElementById(`email${i}`).value,
-      hireDate: document.getElementById(`hireDate${i}`).value,
-      dependents: document.getElementById(`dependents${i}`).value,
-    };
-    employees.push(employee);
-  }
-
-  // Send data to the backend
-  try {
-      const response = await fetch('http://localhost:3000/submit', {  // Changed endpoint to /submit
-        method: 'POST',
-        mode: 'cors',  // Explicitly enable CORS
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ 
-          companyName, 
-          companyZipcode, 
-          employees,
-          insuranceTypes
-        })
-      });
   
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Submission failed');
-      }
-  
-      const result = await response.json();
-      console.log('Success:', result);
-      window.location.href = 'thank-you.html';
-      
-    } catch (error) {
-      console.error('Error:', error);
-      alert(`Submission error: ${error.message}`);
-    }
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { details: err.message })
   });
+});
+
+// Start server
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+  console.log(`Email service: ${transporter.options.auth.user ? 'Configured' : 'Not configured'}`);
+})
+.on('error', (err) => {
+  console.error('Server failed:', err);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    pool.end();
+    console.log('Server closed. Database pool ended.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    pool.end();
+    console.log('Server closed. Database pool ended.');
+    process.exit(0);
+  });
+});
+
