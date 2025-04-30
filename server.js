@@ -1,19 +1,30 @@
+// server.js
 require('dotenv').config(); // Load environment variables
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
+const nodemailer = require('nodemailer');
 
 // Initialize Express app
 const app = express();
-const PORT = 3000; // Explicit port declaration
+const PORT = 3000;
 
-// Database configuration
+// Create email transporter
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE || 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Database connection pool
 const pool = mysql.createPool({
-  host: 'localhost',
-  port: 3306,
-  user: 'user',
-  password: 'Incorrect03!',
-  database: 'client_info',
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -29,17 +40,85 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
   optionsSuccessStatus: 200
 };
 
-// Apply middleware in correct order
-app.use(cors(corsOptions)); // Regular requests
-app.options('*', cors(corsOptions)); // Preflight requests
-app.use(express.json()); // Enable JSON body parsing
+// Apply middleware
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+app.use(express.json());
+
+// Email sending function
+async function sendConfirmationEmail(companyData, employees) {
+  const mailOptions = {
+    from: `"Client Submission System" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_TO,
+    subject: `New Client Submission: ${companyData.companyName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <h1 style="color: #2c3e50;">New Client Information Received</h1>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+          <h2 style="color: #3498db; margin-top: 0;">Company Details</h2>
+          <p><strong>Name:</strong> ${companyData.companyName}</p>
+          <p><strong>Zipcode:</strong> ${companyData.companyZipcode}</p>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+          <h2 style="color: #3498db; margin-top: 0;">Employees (${employees.length})</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+              <tr style="background-color: #3498db; color: white;">
+                <th style="padding: 10px; text-align: left;">#</th>
+                <th style="padding: 10px; text-align: left;">Name</th>
+                <th style="padding: 10px; text-align: left;">Email</th>
+                <th style="padding: 10px; text-align: left;">Birth Date</th>
+                <th style="padding: 10px; text-align: left;">Hire Date</th>
+                <th style="padding: 10px; text-align: left;">Dependents</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${employees.map((emp, index) => `
+                <tr style="border-bottom: 1px solid #ddd;">
+                  <td style="padding: 10px;">${index + 1}</td>
+                  <td style="padding: 10px;">${emp.firstName} ${emp.lastName}</td>
+                  <td style="padding: 10px;">${emp.email}</td>
+                  <td style="padding: 10px;">${new Date(emp.birthDate).toLocaleDateString()}</td>
+                  <td style="padding: 10px;">${new Date(emp.hireDate).toLocaleDateString()}</td>
+                  <td style="padding: 10px;">${emp.dependents === 'yes' ? 'Yes' : 'No'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        
+        <p style="margin-top: 20px; color: #7f8c8d; font-size: 0.9em;">
+          This information has been successfully saved to our database at ${new Date().toLocaleString()}.
+        </p>
+      </div>
+    `,
+    text: `New Client Submission\n\nCompany: ${companyData.companyName}\nZipcode: ${companyData.companyZipcode}\n\nEmployees:\n${employees.map((emp, i) => `${i+1}. ${emp.firstName} ${emp.lastName} (${emp.email})`).join('\n')}`
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Email sending failed:', error);
+    throw error;
+  }
+}
 
 // Routes
 app.get('/', (req, res) => {
@@ -58,7 +137,7 @@ app.get('/', (req, res) => {
       description: 'Submit client/employee data',
       example: `curl -X POST http://localhost:3000/submit \\
         -H "Content-Type: application/json" \\
-        -d '{"companyName":"Test","employees":[{"firstName":"John"}]}'`
+        -d '{"companyName":"Test","companyZipcode":"12345","employees":[{"firstName":"John","lastName":"Doe","email":"john@example.com","birthDate":"1990-01-01","hireDate":"2020-01-01","dependents":"yes"}]}'`
     }
   ];
 
@@ -134,19 +213,38 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
+  res.status(200).json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    database: pool.pool.config.connectionConfig.database,
+    emailService: !!transporter.options.auth.user
+  });
 });
 
 // Form submission endpoint
 app.post('/submit', async (req, res) => {
-  // Input validation
   const { companyName, companyZipcode, employees } = req.body;
   
-  if (!companyName || !companyZipcode || !employees) {
+  // Input validation
+  if (!companyName || !companyZipcode || !employees || !Array.isArray(employees)) {
     return res.status(400).json({ 
       error: 'Missing required fields',
-      required: ['companyName', 'companyZipcode', 'employees']
+      required: {
+        companyName: 'string',
+        companyZipcode: 'string',
+        employees: 'array of employee objects'
+      }
     });
+  }
+
+  // Validate each employee
+  for (const [index, employee] of employees.entries()) {
+    if (!employee.firstName || !employee.lastName || !employee.email || !employee.birthDate || !employee.hireDate) {
+      return res.status(400).json({
+        error: `Employee ${index + 1} missing required fields`,
+        required: ['firstName', 'lastName', 'email', 'birthDate', 'hireDate']
+      });
+    }
   }
 
   let connection;
@@ -171,7 +269,7 @@ app.post('/submit', async (req, res) => {
           employee.birthDate,
           employee.email,
           employee.hireDate,
-          employee.dependents || 0,
+          employee.dependents === 'yes' ? 1 : 0,
         ]
       );
     });
@@ -179,27 +277,35 @@ app.post('/submit', async (req, res) => {
     await Promise.all(employeePromises);
     await connection.commit();
 
+    // Send confirmation email
+    await sendConfirmationEmail(
+      { companyName, companyZipcode },
+      employees
+    );
+
     res.json({ 
       success: true,
-      message: 'Data saved successfully',
-      companyId: companyResult.insertId
+      message: 'Data saved successfully and confirmation email sent',
+      companyId: companyResult.insertId,
+      employeeCount: employees.length
     });
 
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error('Database error:', error);
+    console.error('Error:', error);
     
     res.status(500).json({ 
       success: false,
       error: 'Internal Server Error',
-      message: error.message
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   } finally {
     if (connection) connection.release();
   }
 });
 
-// Error handling middleware (MUST be after routes but before server startup)
+// Error handling middleware
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ 
@@ -210,14 +316,37 @@ app.use((err, req, res, next) => {
   }
   
   console.error('Server error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { details: err.message })
+  });
 });
 
-// Start server (ONCE)
+// Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+  console.log(`Email service: ${transporter.options.auth.user ? 'Configured' : 'Not configured'}`);
 })
 .on('error', (err) => {
   console.error('Server failed:', err);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    pool.end();
+    console.log('Server closed. Database pool ended.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    pool.end();
+    console.log('Server closed. Database pool ended.');
+    process.exit(0);
+  });
 });
